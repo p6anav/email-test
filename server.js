@@ -384,8 +384,8 @@ app.get('/logout', (req, res) => {
   if (sessionId) {
     userSessions.delete(sessionId);
   }
-  const cookieOptions = { maxAge: 900000, httpOnly: true, sameSite: 'lax', secure: isProd };
-  res.clearCookie('sessionId', cookieOptions);
+  const clearOptions = { httpOnly: true, sameSite: 'lax', secure: isProd };
+  res.clearCookie('sessionId', clearOptions);
   res.redirect('/');
 });
 
