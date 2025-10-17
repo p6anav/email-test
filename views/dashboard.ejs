@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gmail Test App</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header { 
+            background: white; 
+            padding: 1.5rem 2rem; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 2rem; 
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 2rem; 
+            margin-bottom: 2rem;
+        }
+        .card { 
+            background: white; 
+            padding: 1.5rem; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card-full { grid-column: 1 / -1; }
+        .btn { 
+            background: #4285f4; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-success { background: #34a853; }
+        .btn-danger { background: #ea4335; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input, textarea, select { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            font-size: 14px;
+        }
+        textarea { height: 100px; resize: vertical; }
+        .email-list { max-height: 400px; overflow-y: auto; }
+        .email-item { 
+            padding: 10px; 
+            border-bottom: 1px solid #eee; 
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .email-item:hover { background: #f8f9fa; }
+        .token-info { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .stats { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .stat-item { 
+            background: #e8f0fe; 
+            padding: 1rem; 
+            border-radius: 5px; 
+            text-align: center;
+            flex: 1;
+        }
+        .stat-number { 
+            font-size: 2rem; 
+            font-weight: bold; 
+            color: #4285f4; 
+        }
+        /* Simple modal */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; }
+        .modal { background: #fff; width: min(800px, 92vw); max-height: 85vh; overflow: auto; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal header { padding: 12px 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal header h3 { margin: 0; font-size: 16px; }
+        .modal .content { padding: 16px; }
+        .modal .meta { font-size: 13px; color: #555; margin-bottom: 12px; }
+        .modal .body { background: #fafafa; border: 1px solid #eee; padding: 12px; border-radius: 6px; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; }
+        .close-btn { border: none; background: transparent; font-size: 18px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📧 Gmail Dashboard</h1>
+        <div>
+            <span>Welcome, <%= userProfile.name %>!</span>
+            <a href="/logout" class="btn btn-danger">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- User Stats -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number"><%= profile.messagesTotal %></div>
+                <div>Total Messages</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number"><%= profile.threadsTotal %></div>
+                <div>Total Threads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number"><%= labels.length %></div>
+                <div>Labels</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Send Email Card -->
+            <div class="card">
+                <h2>✉️ Send Test Email</h2>
+                <form id="sendEmailForm">
+                    <div class="form-group">
+                        <label for="to">To:</label>
+                        <input type="email" id="to" name="to" value="<%= profile.emailAddress %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Subject:</label>
+                        <input type="text" id="subject" name="subject" value="Test Email from Gmail OAuth App" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="body">Message:</label>
+                        <textarea id="body" name="body" required>This is a test email sent from our Node.js Gmail OAuth application!</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Send Email</button>
+                </form>
+                <div id="emailResult" style="margin-top: 1rem;"></div>
+            </div>
+
+            <!-- Recent Emails Card -->
+            <div class="card">
+                <h2>📥 Recent Emails</h2>
+                <div class="email-list" id="emailList">
+                    <% if (messages.length > 0) { %>
+                        <% messages.forEach(message => { %>
+                            <div class="email-item" onclick="viewEmail('<%= message.id %>')">
+                                <strong>Email ID:</strong> <%= message.id %>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No recent emails found.</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Token Information Card -->
+            <div class="card card-full">
+                <h2>🔑 OAuth Token Information</h2>
+                <div class="token-info">
+                    <pre><%= JSON.stringify(tokens, null, 2) %></pre>
+                </div>
+                <button onclick="refreshTokens()" class="btn">Refresh Tokens</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle send email form
+        document.getElementById('sendEmailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('emailResult');
+            const button = e.target.querySelector('button');
+            
+            button.disabled = true;
+            button.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch('/send-test-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: formData.get('to'),
+                        subject: formData.get('subject'),
+                        body: formData.get('body')
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    resultDiv.innerHTML = `<div style="color: green; padding: 10px; background: #f0fff4; border-radius: 5px;">
+                        ✅ ${data.message}<br>
+                        <small>Message ID: ${data.messageId}</small>
+                    </div>`;
+                    e.target.reset();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: red; padding: 10px; background: #fff0f0; border-radius: 5px;">
+                    ❌ Error: ${error.message}
+                </div>`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Send Email';
+            }
+        });
+
+        // View email details
+        async function viewEmail(emailId) {
+            try {
+                const response = await fetch('/api/emails/' + emailId + '?format=full');
+                const emailData = await response.json();
+                if (emailData.error) throw new Error(emailData.error);
+
+                const headers = emailData.payload?.headers || [];
+                const hmap = Object.fromEntries(headers.map(h => [h.name, h.value]));
+                const subject = hmap['Subject'] || 'No Subject';
+                const from = hmap['From'] || 'Unknown Sender';
+                const date = hmap['Date'] || '';
+                const toPlainText = (html) => {
+                    if (!html) return '';
+                    const div = document.createElement('div');
+                    div.innerHTML = html;
+                    return (div.textContent || div.innerText || '').trim();
+                };
+
+                const bodyText = emailData.decodedBodyText
+                    || toPlainText(emailData.decodedBodyHtml)
+                    || emailData.snippet
+                    || '';
+
+                openEmailModal({ from, subject, date, body: bodyText });
+            } catch (error) {
+                alert('Error loading email: ' + error.message);
+            }
+        }
+
+        // Refresh tokens
+        async function refreshTokens() {
+            try {
+                const response = await fetch('/refresh-tokens', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Tokens refreshed successfully! Page will reload.');
+                    location.reload();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('Error refreshing tokens: ' + error.message);
+            }
+        }
+
+        // Modal helpers
+        function ensureModal() {
+            let backdrop = document.getElementById('emailModalBackdrop');
+            if (backdrop) return backdrop;
+            backdrop = document.createElement('div');
+            backdrop.id = 'emailModalBackdrop';
+            backdrop.className = 'modal-backdrop';
+            backdrop.innerHTML = `
+                <div class="modal">
+                    <header>
+                        <h3 id="emailModalTitle">Email</h3>
+                        <button class="close-btn" aria-label="Close" onclick="closeEmailModal()">×</button>
+                    </header>
+                    <div class="content">
+                        <div class="meta" id="emailModalMeta"></div>
+                        <div class="body" id="emailModalBody"></div>
+                    </div>
+                </div>`;
+            backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeEmailModal(); });
+            document.body.appendChild(backdrop);
+            return backdrop;
+        }
+
+        function openEmailModal({ from, subject, date, body }) {
+            const backdrop = ensureModal();
+            const titleEl = backdrop.querySelector('#emailModalTitle');
+            const metaEl = backdrop.querySelector('#emailModalMeta');
+            const bodyEl = backdrop.querySelector('#emailModalBody');
+            titleEl.textContent = subject;
+            metaEl.textContent = `${from}${date ? ' • ' + date : ''}`;
+            bodyEl.textContent = body || '(No body)';
+            backdrop.style.display = 'flex';
+        }
+
+        function closeEmailModal() {
+            const backdrop = document.getElementById('emailModalBackdrop');
+            if (backdrop) backdrop.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

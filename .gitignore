@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+logs/
+*.log
+pids/
+*.pid
+*.pid.lock
+coverage/

@@ -24,6 +24,29 @@ A complete Node.js + Express application demonstrating Google OAuth 2.0 (web ser
 
 Visit http://localhost:3000 and click "Authenticate with Google".
 
+## Deploy
+
+### Docker
+1. Build image:
+   - `docker build -t gmail-oauth-test .`
+2. Run (pass env vars):
+   - `docker run -p 3000:3000 --env-file .env gmail-oauth-test`
+
+Ensure your OAuth redirect URI includes your public domain: `https://yourdomain.com/oauth2callback`.
+
+### Production Hardening Included
+- `helmet` security headers (CSP disabled by default for EJS convenience)
+- gzip compression
+- rate limiting (300 req/15m per IP)
+- morgan request logging
+- secure cookies in production (SameSite=Lax, HttpOnly, Secure)
+- `app.set('trust proxy', 1)` in production
+
+### Platform Notes
+- Reverse proxy/TLS: terminate TLS at your proxy and forward to Node. Set `NODE_ENV=production`.
+- Environment: provide `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `SESSION_SECRET`, `PORT`.
+- Tokens/sessions: this sample stores tokens in memory; for production, use a persistent store (DB/Redis/KMS) and rotate secrets.
+
 ## Endpoints & Views
 - `GET /` → Home, auth button or dashboard link
 - `GET /dashboard` → After login: stats, recent emails, token info
